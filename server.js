@@ -32,14 +32,14 @@ app.use(require('morgan')('dev'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({ secret: 'passport-tutorial', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
+app.use(session({ secret: 'p10-db', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
 
 if(!isProduction) {
   app.use(errorHandler());
 }
 
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/passport-tutorial', { useNewUrlParser: true });
+mongoose.connect('mongodb://localhost/p10-db', { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 require('./models/Users');
