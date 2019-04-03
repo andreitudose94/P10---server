@@ -8,7 +8,10 @@ const UsersSchema = new Schema({
   email: String,
   hash: String,
   salt: String,
-  role: String
+  role: String,
+  primaryTenant: String,
+  activeTenant:  String,
+  tenantsList:  Array
 });
 
 UsersSchema.methods.setPassword = function(password) {
@@ -39,7 +42,10 @@ UsersSchema.methods.toAuthJSON = function() {
     _id: this._id,
     email: this.email,
     token: this.generateJWT(),
-    role: this.role
+    role: this.role,
+    primaryTenant: this.primaryTenant,
+    activeTenant:  this.activeTenant,
+    tenantsList:  this.tenantsList
   };
 };
 

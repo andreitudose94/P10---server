@@ -25,7 +25,15 @@ router.post('/', auth.optional, (req, res, next) => {
   }
 
   // we add the role to the user
-  const finalUser = new Users(Object.assign(user, { role: 'Admin' }));
+  const finalUser = new Users(Object.assign(user, {
+    role: 'Admin',
+    primaryTenant: user.email + '-default',
+    activeTenant:  user.email + '-default',
+    tenantsList:  [{
+      title: user.email + '-default',
+      description: 'This tenant has been created automatically by the app'
+    }]
+  }));
 
   finalUser.setPassword(user.password);
 
@@ -82,6 +90,64 @@ router.get('/current', auth.required, (req, res, next) => {
       }
 
       return res.json({ user: user.toAuthJSON() });
+    });
+});
+
+//POST new user route (optional, everyone has access)
+router.post('/addTenant', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { tenantsList } } = req
+
+  if(!tenantsList || tenantsList === []) {
+    return res.status(422).json({
+      errors: {
+        tenantsList: 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.sendStatus(400);
+      }
+
+      // return res.json({ user });
+      const finalUser = new Users(Object.assign(user, {
+        tenantsList: tenantsList
+      }));
+
+      return finalUser.save()
+        .then(() => res.json({ tenantsList: tenantsList }));
+    });
+});
+
+//POST new user route (optional, everyone has access)
+router.post('/deleteTenant', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { tenantsList } } = req
+
+  if(!tenantsList || tenantsList === []) {
+    return res.status(422).json({
+      errors: {
+        tenantsList: 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.sendStatus(400);
+      }
+
+      // return res.json({ user });
+      const finalUser = new Users(Object.assign(user, {
+        tenantsList: tenantsList
+      }));
+
+      return finalUser.save()
+        .then(() => res.json({ tenantsList: tenantsList }));
     });
 });
 
