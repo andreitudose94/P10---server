@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Schema } = mongoose;
 
 const UsersSchema = new Schema({
+  name: String,
   email: String,
   hash: String,
   salt: String,
@@ -40,6 +41,7 @@ UsersSchema.methods.generateJWT = function() {
 UsersSchema.methods.toAuthJSON = function() {
   return {
     _id: this._id,
+    name: this.name,
     email: this.email,
     token: this.generateJWT(),
     role: this.role,

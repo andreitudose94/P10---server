@@ -26,6 +26,7 @@ router.post('/', auth.optional, (req, res, next) => {
 
   // we add the role to the user
   const finalUser = new Users(Object.assign(user, {
+    name: user.name,
     role: 'Admin',
     primaryTenant: user.email + '-default',
     activeTenant:  user.email + '-default',
