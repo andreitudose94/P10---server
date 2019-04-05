@@ -94,7 +94,20 @@ router.get('/current', auth.required, (req, res, next) => {
     });
 });
 
-//POST new user route (optional, everyone has access)
+//GET all users (required, only authenticated users have access)
+router.get('/all', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  return Users.findById(id, { primaryTenant: 1 })
+    .then((myUser) => {
+      if(!myUser) {
+        return res.sendStatus(400);
+      }
+      return Users.find({ primaryTenant: myUser.primaryTenant }, { name: 1, email: 1, role: 1, tenantsList: 1 })
+        .then((users) => res.json({ users }))
+    });
+});
+
+//POST new tenant (optional, everyone has access)
 router.post('/addTenant', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
   const { body: { tenantsList } } = req
