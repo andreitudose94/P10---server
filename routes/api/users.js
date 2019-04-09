@@ -3,6 +3,50 @@ const passport = require('passport');
 const router = require('express').Router();
 const auth = require('../auth');
 const Users = mongoose.model('Users');
+const nodemailer = require('nodemailer');
+
+const emailInit = (sendTo, subject, html) => {
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'andreidev1994@gmail.com',
+      pass: 'Welcome2008'
+    }
+  });
+
+  const mailOptions = {
+    from: 'andreidev1994@gmail.com',
+    to: sendTo,
+    subject: subject,
+    html: html
+  };
+
+  return { transporter: transporter, mailOptions: mailOptions }
+}
+
+const sendEmail = (transporter, mailOptions) =>
+  new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        reject(error)
+      } else {
+        console.log('Email sent: ' + info.response);
+        resolve(info)
+      }
+    });
+  });
+
+const generateRandomPassword = (length) => {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  for (let i = 0; i < length; i++)
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+  return text;
+}
 
 //POST new user route (optional, everyone has access)
 router.post('/', auth.optional, (req, res, next) => {
@@ -28,10 +72,10 @@ router.post('/', auth.optional, (req, res, next) => {
   const finalUser = new Users(Object.assign(user, {
     name: user.name,
     role: 'Admin',
-    primaryTenant: user.email + '-default',
-    activeTenant:  user.email + '-default',
+    primaryTenant: user.email + '$default',
+    activeTenant:  user.email + '$default',
     tenantsList:  [{
-      title: user.email + '-default',
+      title: user.email + '$default',
       description: 'This tenant has been created automatically by the app'
     }]
   }));
@@ -39,7 +83,110 @@ router.post('/', auth.optional, (req, res, next) => {
   finalUser.setPassword(user.password);
 
   return finalUser.save()
+    .then(() => {
+      const subject = 'Welcome to FMS (Field Mission Support)'
+      const html = `
+        <p>
+          Hello dear client! <br />
+          Click the link below to access the FMS app. <br />
+          <a href='${"http:localhost:8080/login"}'> FMS Login URL </a> <br />
+          Thanks, <br />
+          The Paco team
+        </p>
+      `
+      const { transporter, mailOptions } = emailInit(user.email, subject, html)
+      return sendEmail(transporter, mailOptions)
+    })
     .then(() => res.json({ user: finalUser.toAuthJSON() }));
+
+});
+
+//POST new user route (optional, everyone has access)
+router.post('/new', auth.required, (req, res, next) => {
+  const { body: { user } } = req;
+  const clientHost = req.headers.origin
+
+  if(!user.name) {
+    return res.status(422).json({
+      errors: {
+        name: 'is required',
+      },
+    });
+  }
+
+  if(!user.email) {
+    return res.status(422).json({
+      errors: {
+        email: 'is required',
+      },
+    });
+  }
+
+  // here we should add an algorithm to generate default password
+  const password = generateRandomPassword(15)
+
+  // we add the role to the user
+  const finalUser = new Users(Object.assign(user, {
+    name: user.name,
+    password: password,
+    role: user.role,
+    primaryTenant: user.primaryTenant,
+    activeTenant:  user.activeTenant,
+    tenantsList:  user.tenantsList
+  }));
+
+  finalUser.setPassword(password);
+
+  return finalUser.save()
+    .then(() => {
+      console.log('finalUser', finalUser);
+      const subject = 'Reset your password on FMS (Field Mission Support)'
+      const html = `
+        <p>
+          Hello dear client! <br />
+          Click the link below to reset your password on FMS app. <br />
+          <a href='${clientHost + "/reset-default-password/" + finalUser.salt + "~" + finalUser._id}'> Reset Password from here </a> <br />
+          Thanks, <br />
+          The Paco team
+        </p>
+      `
+      const { transporter, mailOptions } = emailInit(user.email, subject, html)
+      return sendEmail(transporter, mailOptions)
+    })
+    .then(() => res.json({ ok: true }));
+});
+
+//POST new user route (optional, everyone has access)
+router.post('/reset-default-password', auth.optional, (req, res, next) => {
+  const { body: { password } } = req;
+  const clientUrl = req.headers.referer
+  const oldSaltAndId = clientUrl.substr(clientUrl.lastIndexOf('/') + 1)
+  const oldSalt = oldSaltAndId.substr(0, oldSaltAndId.indexOf('~'))
+  const clientId = oldSaltAndId.substr(oldSaltAndId.indexOf('~') + 1)
+
+  if(password.length === 0) {
+    return res.status(422).json({
+      errors: {
+        password: 'is required',
+      },
+    });
+  }
+
+  return Users.findOne({_id: clientId, salt: oldSalt})
+    .then((user) => {
+      if(!user) {
+        return res.status(400).json({
+          message: 'Seems that the url address has been expired!'
+        });
+      }
+
+      const finalUser = new Users(user)
+      finalUser.setPassword(password);
+
+      return finalUser.save()
+        .then(() => res.json({ ok: true }))
+    });
+
 });
 
 //POST login route (optional, everyone has access)
