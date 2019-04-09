@@ -4,6 +4,7 @@ const router = require('express').Router();
 const auth = require('../auth');
 const Users = mongoose.model('Users');
 const nodemailer = require('nodemailer');
+const Promise = require('bluebird');
 
 const emailInit = (sendTo, subject, html) => {
 
@@ -68,36 +69,45 @@ router.post('/', auth.optional, (req, res, next) => {
     });
   }
 
-  // we add the role to the user
-  const finalUser = new Users(Object.assign(user, {
-    name: user.name,
-    role: 'Admin',
-    primaryTenant: user.email + '$default',
-    activeTenant:  user.email + '$default',
-    tenantsList:  [{
-      title: user.email + '$default',
-      description: 'This tenant has been created automatically by the app'
-    }]
-  }));
+  return Users.findOne({email: user.email})
+    .then((existingUser) => {
+      if(existingUser) {
+        return res.status(422).json({
+          message: 'Email already exists!',
+        });
+      }
 
-  finalUser.setPassword(user.password);
+      // we add the role to the user
+      const finalUser = new Users(Object.assign(user, {
+        name: user.name,
+        role: 'Admin',
+        primaryTenant: user.email + '$default',
+        activeTenant:  user.email + '$default',
+        tenantsList:  [{
+          title: user.email + '$default',
+          description: 'This tenant has been created automatically by the app'
+        }]
+      }));
 
-  return finalUser.save()
-    .then(() => {
-      const subject = 'Welcome to FMS (Field Mission Support)'
-      const html = `
-        <p>
-          Hello dear client! <br />
-          Click the link below to access the FMS app. <br />
-          <a href='${"http:localhost:8080/login"}'> FMS Login URL </a> <br />
-          Thanks, <br />
-          The Paco team
-        </p>
-      `
-      const { transporter, mailOptions } = emailInit(user.email, subject, html)
-      return sendEmail(transporter, mailOptions)
+      finalUser.setPassword(user.password);
+
+      return finalUser.save()
+        .then(() => {
+          const subject = 'Welcome to FMS (Field Mission Support)'
+          const html = `
+            <p>
+              Hello dear client! <br />
+              Click the link below to access the FMS app. <br />
+              <a href='${"http:localhost:8080/login"}'> FMS Login URL </a> <br />
+              Thanks, <br />
+              The Paco team
+            </p>
+          `
+          const { transporter, mailOptions } = emailInit(user.email, subject, html)
+          return sendEmail(transporter, mailOptions)
+        })
+        .then(() => res.json({ user: finalUser.toAuthJSON() }));
     })
-    .then(() => res.json({ user: finalUser.toAuthJSON() }));
 
 });
 
@@ -122,38 +132,48 @@ router.post('/new', auth.required, (req, res, next) => {
     });
   }
 
-  // here we should add an algorithm to generate default password
-  const password = generateRandomPassword(15)
 
-  // we add the role to the user
-  const finalUser = new Users(Object.assign(user, {
-    name: user.name,
-    password: password,
-    role: user.role,
-    primaryTenant: user.primaryTenant,
-    activeTenant:  user.activeTenant,
-    tenantsList:  user.tenantsList
-  }));
+  return Users.findOne({email: user.email})
+    .then((existingUser) => {
+      if(existingUser) {
+        return res.status(422).json({
+          message: 'Email already exists!',
+        });
+      }
 
-  finalUser.setPassword(password);
+      // here we should add an algorithm to generate default password
+      const password = generateRandomPassword(15)
 
-  return finalUser.save()
-    .then(() => {
-      console.log('finalUser', finalUser);
-      const subject = 'Reset your password on FMS (Field Mission Support)'
-      const html = `
-        <p>
-          Hello dear client! <br />
-          Click the link below to reset your password on FMS app. <br />
-          <a href='${clientHost + "/reset-default-password/" + finalUser.salt + "~" + finalUser._id}'> Reset Password from here </a> <br />
-          Thanks, <br />
-          The Paco team
-        </p>
-      `
-      const { transporter, mailOptions } = emailInit(user.email, subject, html)
-      return sendEmail(transporter, mailOptions)
+      // we add the role to the user
+      const finalUser = new Users(Object.assign(user, {
+        name: user.name,
+        password: password,
+        role: user.role,
+        primaryTenant: user.primaryTenant,
+        activeTenant:  user.activeTenant,
+        tenantsList:  user.tenantsList
+      }));
+
+      finalUser.setPassword(password);
+
+      return finalUser.save()
+        .then(() => {
+          console.log('finalUser', finalUser);
+          const subject = 'Reset your password on FMS (Field Mission Support)'
+          const html = `
+            <p>
+              Hello dear client! <br />
+              Click the link below to reset your password on FMS app. <br />
+              <a href='${clientHost + "/reset-default-password/" + finalUser.salt + "~" + finalUser._id}'> Reset Password from here </a> <br />
+              Thanks, <br />
+              The Paco team
+            </p>
+          `
+          const { transporter, mailOptions } = emailInit(user.email, subject, html)
+          return sendEmail(transporter, mailOptions)
+        })
+        .then(() => res.json({ ok: true }));
     })
-    .then(() => res.json({ ok: true }));
 });
 
 //POST new user route (optional, everyone has access)
@@ -209,7 +229,7 @@ router.post('/login', auth.optional, (req, res, next) => {
     });
   }
 
-  return passport.authenticate('local', { session: false }, (err, passportUser, info) => {
+  return passport.authenticate('local', { session: true }, (err, passportUser, info) => {
     if(err) {
       return next(err);
     }
@@ -286,7 +306,7 @@ router.post('/addTenant', auth.required, (req, res, next) => {
 //POST new user route (optional, everyone has access)
 router.post('/deleteTenant', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
-  const { body: { tenantsList } } = req
+  const { body: { tenantsList, tenantDeleted } } = req
 
   if(!tenantsList || tenantsList === []) {
     return res.status(422).json({
@@ -308,8 +328,34 @@ router.post('/deleteTenant', auth.required, (req, res, next) => {
       }));
 
       return finalUser.save()
-        .then(() => res.json({ tenantsList: tenantsList }));
-    });
+        .then(() => Users.find({tenantsList: {$elemMatch: {title: tenantDeleted}}}))
+        // delete or update users
+        .then((users) =>
+          Promise.map(
+            users,
+            (u) => {
+              const newTenantsList = u.tenantsList.filter((tl) =>
+                tl.title !== tenantDeleted)
+
+                if(newTenantsList.length > 0) {
+
+                  const finalUser = new Users(Object.assign(u, {
+                    tenantsList: newTenantsList
+                  }));
+                  return finalUser.save()
+
+                } else {
+                  return Users.deleteOne({ _id: u._id })
+                }
+            },
+            {
+              concurrency: 1
+            }
+          )
+      )
+      .then(() => res.json({ tenantsList: tenantsList }))
+    })
+
 });
 
 module.exports = router;
