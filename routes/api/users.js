@@ -112,8 +112,9 @@ router.post('/', auth.optional, (req, res, next) => {
 
 });
 
-//POST new user route (optional, everyone has access)
+//POST new user (auth required)
 router.post('/new', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
   const { body: { user } } = req;
   const clientHost = req.headers.origin
 
@@ -133,8 +134,15 @@ router.post('/new', auth.required, (req, res, next) => {
     });
   }
 
-
-  return Users.findOne({email: user.email})
+  return Users.findById(id)
+    .then((myUser) => {
+      if(!myUser) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+      return Users.findOne({email: user.email})
+    })
     .then((existingUser) => {
       if(existingUser) {
         return res.status(422).json({
@@ -255,7 +263,9 @@ router.get('/current', auth.required, (req, res, next) => {
   return Users.findById(id)
     .then((user) => {
       if(!user) {
-        return res.sendStatus(400);
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!'
+        });
       }
 
       return res.json({ user: user.toAuthJSON() });
@@ -268,7 +278,9 @@ router.get('/all', auth.required, (req, res, next) => {
   return Users.findById(id, { primaryTenant: 1 })
     .then((myUser) => {
       if(!myUser) {
-        return res.sendStatus(400);
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
       }
       return Users.find({ primaryTenant: myUser.primaryTenant }, { name: 1, email: 1, role: 1, tenantsList: 1 })
         .then((users) => res.json({ users }))
@@ -291,7 +303,9 @@ router.post('/addTenant', auth.required, (req, res, next) => {
   return Users.findById(id)
     .then((user) => {
       if(!user) {
-        return res.sendStatus(400);
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
       }
 
       // return res.json({ user });
@@ -320,7 +334,9 @@ router.post('/deleteTenant', auth.required, (req, res, next) => {
   return Users.findById(id)
     .then((user) => {
       if(!user) {
-        return res.sendStatus(400);
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });;
       }
 
       // return res.json({ user });
