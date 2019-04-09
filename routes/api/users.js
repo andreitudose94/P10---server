@@ -1,3 +1,4 @@
+const env = require('../../env.json')
 const mongoose = require('mongoose');
 const passport = require('passport');
 const router = require('express').Router();
@@ -11,13 +12,13 @@ const emailInit = (sendTo, subject, html) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'andreidev1994@gmail.com',
-      pass: 'Welcome2008'
+      user: env.APLICATION_EMAIL,
+      pass: env.APLICATION_PASSWORD
     }
   });
 
   const mailOptions = {
-    from: 'andreidev1994@gmail.com',
+    from: env.APLICATION_EMAIL,
     to: sendTo,
     subject: subject,
     html: html

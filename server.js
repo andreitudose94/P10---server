@@ -16,6 +16,7 @@ const session = require('express-session');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const errorHandler = require('errorhandler');
+const env = require('./env.json')
 
 //Configure mongoose's promise to global promise
 mongoose.promise = global.Promise;
@@ -39,7 +40,7 @@ if(!isProduction) {
 }
 
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/p10-db', { useNewUrlParser: true });
+mongoose.connect(env.DB_CONNECT, { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 require('./models/Users');
@@ -71,4 +72,4 @@ app.use((err, req, res) => {
   });
 });
 
-app.listen(8000, () => console.log('Server running on http://localhost:8000/'));
+app.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));
