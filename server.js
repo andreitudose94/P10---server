@@ -44,6 +44,7 @@ mongoose.connect(env.DB_CONNECT, { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 require('./models/Users');
+require('./models/Companies');
 require('./config/passport');
 app.use(require('./routes'));
 

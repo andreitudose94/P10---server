@@ -287,6 +287,37 @@ router.get('/all', auth.required, (req, res, next) => {
     });
 });
 
+//POST activate tenant (optional, everyone has access)
+router.post('/activateTenant', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { activeTenant } } = req
+
+  if(!activeTenant) {
+    return res.status(422).json({
+      errors: {
+        activeTenant: 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+
+      // return res.json({ user });
+      const finalUser = new Users(Object.assign(user, {
+        activeTenant: activeTenant
+      }));
+
+      return finalUser.save()
+        .then(() => res.json({ activeTenant: activeTenant }));
+    });
+});
+
 //POST new tenant (optional, everyone has access)
 router.post('/addTenant', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
