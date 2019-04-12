@@ -45,6 +45,7 @@ mongoose.set('debug', true);
 
 require('./models/Users');
 require('./models/Companies');
+require('./models/Callers');
 require('./config/passport');
 app.use(require('./routes'));
 
