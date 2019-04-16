@@ -96,9 +96,6 @@ router.post('/new', auth.required, (req, res, next) => {
 
       // here we should add an algorithm to generate default password
       const password = generateRandomPassword(15)
-      console.log('password', password);
-      console.log('userPrimaryTenant', userPrimaryTenant);
-      console.log('userActiveTenant', userActiveTenant);
 
       // we add the role to the user
       const finalCompany = new Companies(Object.assign(company, {
