@@ -229,8 +229,24 @@ router.get('/all', auth.required, (req, res, next) => {
           message: 'Your account doesn\'t exist anymore!',
         });
       }
-      return Responsibles.find({ primaryTenant: myUser.primaryTenant, activeTenant: myUser.activeTenant }, { name: 1, email: 1, phoneNo: 1, responsibleId: 1 })
-        .then((responsibles) => res.json({ responsibles }))
+      return Responsibles.find(
+        {
+          primaryTenant: myUser.primaryTenant,
+          activeTenant: myUser.activeTenant,
+        },
+        {
+          name: 1,
+          email: 1,
+          phoneNo: 1,
+          responsibleId: 1,
+          online: 1,
+          geolocation: 1,
+          lastSentInfoTime: 1,
+          status: 1
+        }
+      )
+        .then((responsibles) => res.json({ responsibles })
+      )
     });
 });
 
