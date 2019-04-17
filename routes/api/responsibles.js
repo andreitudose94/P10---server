@@ -264,6 +264,7 @@ router.get('/all-actives', auth.required, (req, res, next) => {
         primaryTenant: myUser.primaryTenant,
         activeTenant: myUser.activeTenant,
         online: true,
+        status: 'Available',
         geolocation: {
           $ne: {
         		lat : "",
@@ -275,68 +276,91 @@ router.get('/all-actives', auth.required, (req, res, next) => {
     });
 });
 
-//
-// //POST activate tenant (optional, everyone has access)
-// router.post('/activateTenant', auth.required, (req, res, next) => {
-//   const { payload: { id } } = req;
-//   const { body: { activeTenant } } = req
-//
-//   if(!activeTenant) {
-//     return res.status(422).json({
-//       errors: {
-//         activeTenant: 'is required',
-//       },
-//     });
-//   }
-//
-//   return Users.findById(id)
-//     .then((user) => {
-//       if(!user) {
-//         return res.status(422).json({
-//           message: 'Your account doesn\'t exist anymore!',
-//         });
-//       }
-//
-//       // return res.json({ user });
-//       const finalUser = new Users(Object.assign(user, {
-//         activeTenant: activeTenant
-//       }));
-//
-//       return finalUser.save()
-//         .then(() => res.json({ activeTenant: activeTenant }));
-//     });
-// });
-//
-// //POST new tenant (optional, everyone has access)
-// router.post('/addTenant', auth.required, (req, res, next) => {
-//   const { payload: { id } } = req;
-//   const { body: { tenantsList } } = req
-//
-//   if(!tenantsList || tenantsList === []) {
-//     return res.status(422).json({
-//       errors: {
-//         tenantsList: 'is required',
-//       },
-//     });
-//   }
-//
-//   return Users.findById(id)
-//     .then((user) => {
-//       if(!user) {
-//         return res.status(422).json({
-//           message: 'Your account doesn\'t exist anymore!',
-//         });
-//       }
-//
-//       // return res.json({ user });
-//       const finalUser = new Users(Object.assign(user, {
-//         tenantsList: tenantsList
-//       }));
-//
-//       return finalUser.save()
-//         .then(() => res.json({ tenantsList: tenantsList }));
-//     });
-// });
+// POST reserve responsible
+router.post('/reserve-responsible', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { respId, uniqueId } } = req
+
+  if(!respId) {
+    return res.status(422).json({
+      errors: {
+        'Responsible id' : 'is required',
+      },
+    });
+  }
+
+  if(!uniqueId) {
+    return res.status(422).json({
+      errors: {
+        'message' : 'Error to the server! Please refresh the page!',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+
+      // make all responsibles that were reserved for this call available again
+      return Responsibles.updateMany({ status: 'Reserved-' + uniqueId }, { $set: { status: 'Available' } })
+        // then find the selected one
+        .then(() => Responsibles.findById(respId))
+        // and reserve it
+        .then((resp) => {
+          if(!resp) {
+            return res.status(422).json({
+              message: 'This responsible doesn\'t exist anymore!',
+            });
+          }
+
+          if(resp.status !== 'Available') {
+            return res.status(422).json({
+              message: 'This responsible has been reserved already!',
+            });
+          }
+
+          // return res.json({ user });
+          const finalResp = new Responsibles(Object.assign(resp, {
+            status: 'Reserved-' + uniqueId
+          }));
+
+          return finalResp.save()
+            .then(() => res.json({ ok: true, id: respId }));
+        });
+    });
+});
+
+// POST release responsibles
+router.post('/release', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { uniqueId } } = req
+
+  if(!uniqueId) {
+    return res.status(422).json({
+      errors: {
+        'message' : 'Error to the server! Please refresh the page!',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+
+      // make all responsibles that were reserved for this call available again
+      return Responsibles.updateMany({ status: 'Reserved-' + uniqueId }, { $set: { status: 'Available' } })
+        .then(() => res.json({ ok: true }));
+    });
+});
+
 //
 // //POST new user route (optional, everyone has access)
 // router.post('/deleteTenant', auth.required, (req, res, next) => {
