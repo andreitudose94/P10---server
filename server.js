@@ -47,6 +47,7 @@ require('./models/Users');
 require('./models/Companies');
 require('./models/Callers');
 require('./models/Responsibles');
+require('./models/Calls');
 require('./config/passport');
 app.use(require('./routes'));
 
