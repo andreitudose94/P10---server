@@ -1,5 +1,6 @@
 const env = require('../../env.json')
 const mongoose = require('mongoose');
+const moment = require('moment');
 const router = require('express').Router();
 const auth = require('../auth');
 const Users = mongoose.model('Users');
@@ -54,17 +55,19 @@ router.post('/new', auth.required, (req, res, next) => {
 
     .then((callsCount) => {
 
-      callIndex = Array(9 - callsCount.toString().length + 1).join("0") + "" + (++callsCount)
+      const newCallsCount = callsCount + 1
+      console.log('newCallsCount', newCallsCount);
+      callIndex = Array(9 - newCallsCount.toString().length).join("0") + "" + newCallsCount
       const callerSSN = newCall.caller.split(' | ')[2].trim()
       return Callers.findOne({ ssn: callerSSN }, { companyId: 1 })
 
     })
 
-    .then((companyId) => {
+    .then((callerReturnedInfo) => {
 
       const finalCall = new Calls(Object.assign(newCall, {
         index: callIndex,
-        companyId: companyId,
+        callerCompany: callerReturnedInfo.companyId,
         status: 'Assigned',
         primaryTenant: userPrimaryTenant,
         activeTenant:  userActiveTenant
@@ -150,8 +153,52 @@ router.post('/new', auth.required, (req, res, next) => {
 //   })(req, res, next);
 // });
 
+//GET all calls which corresponds to sent filter from client (required, only authenticated users have access)
+router.post('/all-filtered', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { filters } } = req;
 
-//GET all companies (required, only authenticated users have access)
+  let userPrimaryTenant = '', userActiveTenant = ''
+  let callIndex = ''
+
+  return Users.findById(id)
+    .then((myUser) => {
+      if(!myUser) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+
+      userPrimaryTenant = myUser.primaryTenant
+      userActiveTenant = myUser.activeTenant
+
+      const { afterDate, responsible } = filters
+
+      let applyFilters = {}
+      if(afterDate) {
+        applyFilters['datetime'] = {
+          $gte : afterDate
+        }
+      }
+
+      if(responsible) {
+        applyFilters['responsible'] = responsible
+      }
+
+      return Calls.find(
+        Object.assign({
+          primaryTenant: userPrimaryTenant,
+          activeTenant: userActiveTenant
+        },
+          applyFilters
+        )
+      )
+    })
+
+    .then((calls) => res.json({ calls }))
+});
+
+//GET all calls (required, only authenticated users have access)
 router.get('/all', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
   return Users.findById(id, { primaryTenant: 1, activeTenant: 1 })
