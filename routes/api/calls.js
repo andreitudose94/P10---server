@@ -6,6 +6,7 @@ const auth = require('../auth');
 const Users = mongoose.model('Users');
 const Calls = mongoose.model('Calls');
 const Callers = mongoose.model('Callers');
+const Missions = mongoose.model('Missions');
 
 //POST new user (auth required)
 router.post('/new', auth.required, (req, res, next) => {
@@ -76,82 +77,40 @@ router.post('/new', auth.required, (req, res, next) => {
       return finalCall.save()
     })
 
+    .then((savedCall) => {
+
+      const finalMission = new Missions({
+        call_id: savedCall._id,
+        call_index: savedCall.index,
+        estimatedStartDateTime: savedCall.promisedDateTime,
+        effectiveStartDateTime: '',
+        estimatedEndDateTime: '',
+        effectiveEndDateTime: '',
+        summary: savedCall.summary,
+        contact: savedCall.contact,
+        contactPhoneNo: savedCall.contactPhoneNo,
+        contactAddress: savedCall.contactAddress,
+        responsible: savedCall.responsible,
+        responsibleGeolocation: savedCall.responsibleGeolocation,
+        eventAddress: savedCall.eventAddress,
+        eventAddressGeolocation: savedCall.eventAddressGeolocation,
+        takenImages: [],
+        file: {},
+        signature: '',
+        status: savedCall.status,
+        primaryTenant: userPrimaryTenant,
+        activeTenant:  userActiveTenant,
+        modifiedAt: new Date()
+      });
+
+      return finalMission.save()
+    })
+
     .then(() => res.json({
         ok: true
       })
     );
 });
-//
-// //POST new user route (optional, everyone has access)
-// router.post('/reset-default-password', auth.optional, (req, res, next) => {
-//   const { body: { password } } = req;
-//   const clientUrl = req.headers.referer
-//   const oldSaltAndId = clientUrl.substr(clientUrl.lastIndexOf('/') + 1)
-//   const oldSalt = oldSaltAndId.substr(0, oldSaltAndId.indexOf('~'))
-//   const clientId = oldSaltAndId.substr(oldSaltAndId.indexOf('~') + 1)
-//
-//   if(password.length === 0) {
-//     return res.status(422).json({
-//       errors: {
-//         password: 'is required',
-//       },
-//     });
-//   }
-//
-//   return Users.findOne({_id: clientId, salt: oldSalt})
-//     .then((user) => {
-//       if(!user) {
-//         return res.status(400).json({
-//           message: 'Seems that the url address has been expired!'
-//         });
-//       }
-//
-//       const finalUser = new Users(user)
-//       finalUser.setPassword(password);
-//
-//       return finalUser.save()
-//         .then(() => res.json({ ok: true }))
-//     });
-//
-// });
-//
-// //POST login route (optional, everyone has access)
-// router.post('/login', auth.optional, (req, res, next) => {
-//   const { body: { user } } = req;
-//
-//   if(!user.email) {
-//     return res.status(422).json({
-//       errors: {
-//         email: 'is required',
-//       },
-//     });
-//   }
-//
-//   if(!user.password) {
-//     return res.status(422).json({
-//       errors: {
-//         password: 'is required',
-//       },
-//     });
-//   }
-//
-//   return passport.authenticate('local', { session: true }, (err, passportUser, info) => {
-//     if(err) {
-//       return next(err);
-//     }
-//
-//     if(passportUser) {
-//       const user = passportUser;
-//       user.token = passportUser.generateJWT();
-//
-//       return res.json({ user: user.toAuthJSON() });
-//     }
-//
-//     return res.status(400).json({
-//       message: 'No user found with these credentials!'
-//     });
-//   })(req, res, next);
-// });
 
 //GET all calls which corresponds to sent filter from client (required, only authenticated users have access)
 router.post('/all-filtered', auth.required, (req, res, next) => {
