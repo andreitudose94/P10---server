@@ -282,7 +282,7 @@ router.get('/responsible', auth.required, (req, res, next) => {
 
   return Responsibles.findOne(
     {responsibleId: headers.indexid},
-    { lastSentInfoTime: 1, name: 1, phoneNo: 1, responsibleId: 1, geolocation: 1, online: 1 }
+    { lastSentInfoTime: 1, name: 1, status: 1, phoneNo: 1, responsibleId: 1, geolocation: 1, online: 1 }
   )
     .then((responsible) => {
       if(!responsible) {
