@@ -94,7 +94,7 @@ router.post('/new', auth.required, (req, res, next) => {
         responsibleGeolocation: savedCall.responsibleGeolocation,
         eventAddress: savedCall.eventAddress,
         eventAddressGeolocation: savedCall.eventAddressGeolocation,
-        takenImages: [],
+        tokenImages: [],
         file: {},
         signature: '',
         status: savedCall.status,

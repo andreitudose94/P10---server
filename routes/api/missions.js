@@ -12,8 +12,6 @@ router.post('/view', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
   const { body: { callIndex } } = req;
 
-  console.log('daaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-
   let userPrimaryTenant = '', userActiveTenant = ''
 
   return Users.findById(id)
