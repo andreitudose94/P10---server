@@ -276,6 +276,45 @@ router.get('/all-actives', auth.required, (req, res, next) => {
     });
 });
 
+//GET one responsible
+router.post('/responsible', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { responsibleId } } = req;
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!'
+        });
+      }
+      return Responsibles.findOne(
+        {responsibleId: responsibleId},
+        { lastSentInfoTime: 1, name: 1, status: 1, responsibleId: 1, geolocation: 1, online: 1 }
+      )
+        .then((responsible) => {
+          if(!responsible) {
+            return res.status(422).json({
+              message: 'The responsible doesn\'t exist now!',
+            });
+          }
+          return res.json({responsible})
+        })
+    })
+  // return Responsibles.findOne(
+  //   {responsibleId: headers.indexid},
+  //   { lastSentInfoTime: 1, name: 1, status: 1, phoneNo: 1, responsibleId: 1, geolocation: 1, online: 1 }
+  // )
+  //   .then((responsible) => {
+  //     if(!responsible) {
+  //       return res.status(422).json({
+  //         message: 'The responsible doesn\'t exist now!',
+  //       });
+  //     }
+  //     return res.json({responsible})
+  //   })
+});
+
 // POST reserve responsible
 router.post('/reserve-responsible', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
