@@ -272,6 +272,52 @@ router.get('/current', auth.required, (req, res, next) => {
     });
 });
 
+
+//GET current route (required, only authenticated users have access)
+router.post('/changePassword', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { oldPassword, newPassword } } = req;
+
+  if(!oldPassword) {
+    return res.status(422).json({
+      errors: {
+        'old password': 'is required',
+      },
+    });
+  }
+
+  if(!newPassword) {
+    return res.status(422).json({
+      errors: {
+        'newPassword': 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!'
+        });
+      }
+
+      if(!user.validatePassword(oldPassword)) {
+        return res.status(422).json({
+          message: 'Invalid password!'
+        });
+      }
+
+      const finalUser = new Users(user)
+      finalUser.setPassword(newPassword);
+
+      return finalUser.save()
+        .then(() => res.json({ ok: true }))
+    })
+});
+
+
+
 //GET all users (required, only authenticated users have access)
 router.get('/all', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
