@@ -1,14 +1,3 @@
-// const express = require('express')
-// const app = express()
-// const cors = require('cors')
-// app.use(cors())
-//
-// app.get('/', function (req, res) {
-//   res.send('Saluuuuut!');
-// });
-//
-// const port = 1234
-// app.listen(port, () => console.log('Listening on port ' + port))
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -17,6 +6,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const errorHandler = require('errorhandler');
 const env = require('./env.json')
+const http = require("http");
+
+const socketIO = require("socket.io");
 
 //Configure mongoose's promise to global promise
 mongoose.promise = global.Promise;
@@ -53,6 +45,8 @@ require('./models/Missions');
 require('./config/passport');
 app.use(require('./routes'));
 
+const Messages = mongoose.model('Messages');
+
 //Error handlers & middlewares
 if(!isProduction) {
   app.use((err, req, res) => {
@@ -78,4 +72,44 @@ app.use((err, req, res) => {
   });
 });
 
-app.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));
+let filterMessages = {}, ds_messages = []
+// our server instance
+const server = http.createServer(app);
+// This creates our socket using the instance of the server
+const io = socketIO(server);
+io.set('origins', 'http://localhost:8080');
+io.on("connection", socket => {
+  //Returning data for messages
+  socket.on("messages_data", (resp) => {
+    filterMessages = resp;
+    Messages.find({
+      primaryTenant: resp.primaryTenant,
+      activeTenant: resp.activeTenant,
+      callIndex: resp.callIndex
+    })
+      .then(message => socket.emit("get_messages", message))
+
+    setInterval(() => {
+      socket.emit("get_messages", ds_messages)
+    }, 10000)
+  });
+
+  // disconnect is fired when a client leaves the server
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+  })
+})
+
+setInterval(() => {
+  const messagesConnected = Object.keys(filterMessages)
+
+  if(messagesConnected.length) {
+    Messages.find({
+      primaryTenant: filterMessages.primaryTenant,
+      activeTenant: filterMessages.activeTenant,
+      callIndex: filterMessages.callIndex
+    }).then((messages) => {ds_messages = messages})
+  }
+}, 10000)
+
+server.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));
