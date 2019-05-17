@@ -73,15 +73,17 @@ app.use((err, req, res) => {
 });
 
 let filterMessages = {}, ds_messages = []
+let lastSendTimeMessages = new Date();
 // our server instance
 const server = http.createServer(app);
 // This creates our socket using the instance of the server
 const io = socketIO(server);
-io.set('origins', 'http://localhost:8080');
+io.set('origins', env.CLIENT_ADDRESS);
 io.on("connection", socket => {
   //Returning data for messages
   socket.on("messages_data", (resp) => {
     filterMessages = resp;
+    lastSendTimeMessages = new Date();
     Messages.find({
       primaryTenant: resp.primaryTenant,
       activeTenant: resp.activeTenant,
@@ -107,8 +109,12 @@ setInterval(() => {
     Messages.find({
       primaryTenant: filterMessages.primaryTenant,
       activeTenant: filterMessages.activeTenant,
-      callIndex: filterMessages.callIndex
-    }).then((messages) => {ds_messages = messages})
+      callIndex: filterMessages.callIndex,
+      datetimeSent: { $gte: lastSendTimeMessages },
+      sentBy: { $ne: filterMessages.sentBy },
+    })
+    .then((messages) => {ds_messages = messages})
+    .then(() => lastSendTimeMessages = new Date())
   }
 }, 10000)
 

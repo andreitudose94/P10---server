@@ -16,7 +16,7 @@ router.post('/view', auth.required, (req, res, next) => {
       callIndex: 'Is required!',
     });
   }
-  console.log('callIndexcallIndex', callIndex);
+  
   return Users.findById(id, { primaryTenant: 1, activeTenant: 1 })
     .then((myUser) => {
       if(!myUser) {
