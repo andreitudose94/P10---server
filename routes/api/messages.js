@@ -16,7 +16,7 @@ router.post('/view', auth.required, (req, res, next) => {
       callIndex: 'Is required!',
     });
   }
-  
+
   return Users.findById(id, { primaryTenant: 1, activeTenant: 1 })
     .then((myUser) => {
       if(!myUser) {
@@ -98,25 +98,19 @@ router.post('/update', auth.required, (req, res, next) => {
 
   if(!callIndex) {
     return res.status(422).json({
-      errors: {
-        'callIndex' : 'is required',
-      },
+      message: 'callIndex: is required',
     });
   }
 
   if(!primaryTenant) {
     return res.status(422).json({
-      errors: {
-        'primaryTenant' : 'is required',
-      },
+      message: 'primaryTenant: is required',
     });
   }
 
   if(!activeTenant) {
     return res.status(422).json({
-      errors: {
-        'activeTenant' : 'is required',
-      },
+      message: 'activeTenant: is required',
     });
   }
 

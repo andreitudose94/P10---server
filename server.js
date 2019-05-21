@@ -46,6 +46,7 @@ require('./config/passport');
 app.use(require('./routes'));
 
 const Messages = mongoose.model('Messages');
+const Responsibles = mongoose.model('Responsibles')
 
 //Error handlers & middlewares
 if(!isProduction) {
@@ -74,6 +75,9 @@ app.use((err, req, res) => {
 
 let filterMessages = {}, ds_messages = []
 let lastSendTimeMessages = new Date();
+
+let filterResponsible = {}, ds_responsible = []
+
 // our server instance
 const server = http.createServer(app);
 // This creates our socket using the instance of the server
@@ -96,6 +100,22 @@ io.on("connection", socket => {
     }, 10000)
   });
 
+//*************
+  socket.on("responsible_data", (resp) => {
+    console.log(resp);
+    filterResponsible = resp;
+    // lastSendTimeMessages = new Date();
+    Responsibles.findOne({
+      responsibleId: resp.responsibleId
+    })
+      .then(responsible => socket.emit("get_responsible", responsible))
+
+    setInterval(() => {
+      socket.emit("get_responsible", ds_responsible)
+    }, 10000)
+  });
+  //********
+
   // disconnect is fired when a client leaves the server
   socket.on("disconnect", () => {
     console.log("user disconnected");
@@ -104,6 +124,7 @@ io.on("connection", socket => {
 
 setInterval(() => {
   const messagesConnected = Object.keys(filterMessages)
+  const responsibleConnected = Object.keys(filterResponsible)
 
   if(messagesConnected.length) {
     Messages.find({
@@ -116,6 +137,15 @@ setInterval(() => {
     .then((messages) => {ds_messages = messages})
     .then(() => lastSendTimeMessages = new Date())
   }
+
+  if(responsibleConnected.length) {
+    console.log(filterResponsible);
+    Responsibles.findOne({
+      responsibleId: filterResponsible.responsibleId
+    }).then((responsible) => {ds_responsible = responsible})
+  }
+
+
 }, 10000)
 
 server.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));

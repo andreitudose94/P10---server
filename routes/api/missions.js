@@ -31,11 +31,11 @@ router.post('/view', auth.required, (req, res, next) => {
         });
       }
 
-      return Missions.find({ call_index: callIndex })
+      return Missions.findOne({ call_index: callIndex })
 
     })
 
-    .then((missions) => res.json({ missions }))
+    .then((mission) => res.json({ mission }))
 });
 
 module.exports = router;
