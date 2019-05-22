@@ -93,17 +93,6 @@ $ npm install
 
  Every API call needs to have an `access token` in request header or as parameter
 
- > * In request header: `Authorization: Bearer 063af88a653d53903f9434ad82d4581e1ce9629d62bd430ea21c60df6cf4dc80`
- > * In request parameters as `GET https://ls1-dev.mdlz.cloud/audits?access_token=063af88a653d53903f9434ad82d4581e1ce9629d62bd430ea21c60df6cf4dc80`
-
- To get this access token you need to provide LS1 user `email/password` in exchange
-
- Access token is valid only for a limited period of time, after which you need to get a new access token using
- your `email/password` or using `refresh token` received along with `access token` in authentication process
-
- > Note:
- > There are a few API calls that do not require authentication token (public access). Check for `Authorization: false` in API method description
-
 ##### User
 
 ###### Create Acount
