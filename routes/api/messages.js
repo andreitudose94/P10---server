@@ -46,7 +46,7 @@ router.post('/new', auth.required, (req, res, next) => {
   if(!newMessage.text) {
     return res.status(422).json({
       errors: {
-        message: 'is required',
+        newMessage: 'is required',
       },
     });
   }
@@ -122,13 +122,6 @@ router.post('/update', auth.required, (req, res, next) => {
           message: 'Your account doesn\'t exist anymore!',
         });
       }
-
-      console.log({
-        callIndex,
-        primaryTenant,
-        activeTenant,
-        user: user.name
-      });
       // make all responsibles that were reserved for this call available again
       return Messages.updateMany(
         {
