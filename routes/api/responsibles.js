@@ -128,8 +128,55 @@ router.post('/new', auth.required, (req, res, next) => {
       finalResp.setPassword(password);
 
       return finalResp.save()
+        .then(() => {
+          const subject = 'Welcome to FMS (Field Mission Support)'
+          const html = `
+            <p>
+              Hello dear employee! <br />
+              Click the link below to reset your password on FMS app. <br />
+              <a href='${clientHost + "/reset-default-password-responsible/" + finalResp.salt + "~" + finalResp._id}'> Reset Password from here </a> <br />
+              Thanks, <br />
+              The Paco team
+            </p>
+          `
+          const { transporter, mailOptions } = emailInit(responsible.email, subject, html)
+          sendEmail(transporter, mailOptions)
+        })
         .then(() => res.json({ ok: true }));
     })
+});
+
+//POST new responsible route (optional, everyone has access)
+router.post('/reset-default-password', auth.optional, (req, res, next) => {
+  const { body: { password } } = req;
+  const clientUrl = req.headers.referer
+  const oldSaltAndId = clientUrl.substr(clientUrl.lastIndexOf('/') + 1)
+  const oldSalt = oldSaltAndId.substr(0, oldSaltAndId.indexOf('~'))
+  const clientId = oldSaltAndId.substr(oldSaltAndId.indexOf('~') + 1)
+
+  if(password.length === 0) {
+    return res.status(422).json({
+      errors: {
+        password: 'is required',
+      },
+    });
+  }
+
+  return Responsibles.findOne({_id: clientId, salt: oldSalt})
+    .then((responsible) => {
+      if(!responsible) {
+        return res.status(400).json({
+          message: 'Seems that the url address has been expired!'
+        });
+      }
+
+      const finalResponsible = new Responsibles(responsible)
+      finalResponsible.setPassword(password);
+
+      return finalResponsible.save()
+        .then(() => res.json({ ok: true }))
+    });
+
 });
 //
 // //POST new user route (optional, everyone has access)

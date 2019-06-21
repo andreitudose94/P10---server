@@ -167,7 +167,6 @@ router.post('/new', auth.required, (req, res, next) => {
 
       return finalUser.save()
         .then(() => {
-          console.log('finalUser', finalUser);
           const subject = 'Reset your password on FMS (Field Mission Support)'
           const html = `
             <p>

@@ -25,7 +25,7 @@ This server is only meant to be a REST server.
     - [Reverve responsible - `/reverve-responsible`](#reverve-responsible)
     - [Release responsible - `/release`](#release-responsible)
   - [Missions](#missions)
-    - [View Missions - `/view`](#View Missions)
+    - [View Missions - `/view`](#view-missions)
   - [Messages](#Messages)
     - [View Messages - `/view`](#view-messages)
     - [New Message - `/new`](#new-message)
