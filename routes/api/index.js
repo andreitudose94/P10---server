@@ -9,5 +9,6 @@ router.use('/calls', require('./calls'));
 router.use('/missions', require('./missions'));
 router.use('/messages', require('./messages'));
 router.use('/services', require('./services'));
+router.use('/contracts', require('./contracts'));
 
 module.exports = router;

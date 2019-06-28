@@ -43,6 +43,7 @@ require('./models/Calls');
 require('./models/Messages');
 require('./models/Missions');
 require('./models/Services');
+require('./models/Contracts');
 require('./config/passport');
 app.use(require('./routes'));
 
