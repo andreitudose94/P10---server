@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const CallsSchema = new Schema({
   index: String,
   extId: String,
-  datetime: String,
+  datetime: Date,
   caller: String,
   callerCompany: String,
   summary: String,
