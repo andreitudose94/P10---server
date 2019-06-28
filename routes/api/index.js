@@ -8,5 +8,6 @@ router.use('/responsibles', require('./responsibles'));
 router.use('/calls', require('./calls'));
 router.use('/missions', require('./missions'));
 router.use('/messages', require('./messages'));
+router.use('/services', require('./services'));
 
 module.exports = router;

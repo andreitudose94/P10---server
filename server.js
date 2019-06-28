@@ -42,6 +42,7 @@ require('./models/Responsibles');
 require('./models/Calls');
 require('./models/Messages');
 require('./models/Missions');
+require('./models/Services');
 require('./config/passport');
 app.use(require('./routes'));
 
