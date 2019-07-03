@@ -57,7 +57,6 @@ router.post('/new', auth.required, (req, res, next) => {
     .then((callsCount) => {
 
       const newCallsCount = callsCount + 1
-      console.log('newCallsCount', newCallsCount);
       callIndex = Array(9 - newCallsCount.toString().length).join("0") + "" + newCallsCount
       const callerSSN = newCall.caller.split(' | ')[2].trim()
       return Callers.findOne({ ssn: callerSSN }, { companyId: 1 })
@@ -98,6 +97,9 @@ router.post('/new', auth.required, (req, res, next) => {
         file: {},
         signature: '',
         status: savedCall.status,
+        contractNumber: savedCall.contractNumber,
+        services: savedCall.services,
+        renderedServices: savedCall.services,
         primaryTenant: userPrimaryTenant,
         activeTenant:  userActiveTenant,
         modifiedAt: new Date()

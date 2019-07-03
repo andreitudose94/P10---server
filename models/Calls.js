@@ -21,6 +21,8 @@ const CallsSchema = new Schema({
   contactAddressGeolocation: Object,
   contactPhoneNo: String,
   status: String,
+  contractNumber: String,
+  services: Object,
   primaryTenant: String,
   activeTenant:  String
 });

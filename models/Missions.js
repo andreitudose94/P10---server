@@ -23,7 +23,11 @@ const MissionsSchema = new Schema({
   status: String,
   primaryTenant: String,
   activeTenant:  String,
-  modifiedAt: Date
+  modifiedAt: Date,
+  contractNumber: String,
+  services: Object,
+  renderedServices: Object,
+  totalPrice: String,
 });
 
 mongoose.model('Missions', MissionsSchema);
