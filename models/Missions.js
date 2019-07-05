@@ -25,8 +25,8 @@ const MissionsSchema = new Schema({
   activeTenant:  String,
   modifiedAt: Date,
   contractNumber: String,
-  services: Object,
-  renderedServices: Object,
+  services: Array,
+  renderedServices: Array,
   totalPrice: String,
 });
 

@@ -78,6 +78,16 @@ router.post('/new', auth.required, (req, res, next) => {
 
     .then((savedCall) => {
 
+      const renderedServices = savedCall.services
+      renderedServices.map((rSrv) => {
+          rSrv.startDateTime = null,
+          rSrv.extraService = false,
+          rSrv.duration = null,
+          rSrv.quantity = null,
+          rSrv.totalPrice = null
+        }
+      )
+
       const finalMission = new Missions({
         call_id: savedCall._id,
         call_index: savedCall.index,
@@ -99,7 +109,7 @@ router.post('/new', auth.required, (req, res, next) => {
         status: savedCall.status,
         contractNumber: savedCall.contractNumber,
         services: savedCall.services,
-        renderedServices: savedCall.services,
+        renderedServices: renderedServices,
         primaryTenant: userPrimaryTenant,
         activeTenant:  userActiveTenant,
         modifiedAt: new Date()
