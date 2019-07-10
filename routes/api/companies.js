@@ -122,7 +122,7 @@ router.post('/new', auth.required, (req, res, next) => {
             </p>
           `
           const { transporter, mailOptions } = emailInit(company.email, subject, html)
-          return sendEmail(transporter, mailOptions)
+          sendEmail(transporter, mailOptions)
         })
         .then(() => res.json({ ok: true }));
     })

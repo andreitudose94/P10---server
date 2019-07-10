@@ -104,10 +104,12 @@ router.post('/', auth.optional, (req, res, next) => {
               The Paco team
             </p>
           `
+
           const { transporter, mailOptions } = emailInit(user.email, subject, html)
-          return sendEmail(transporter, mailOptions)
+          sendEmail(transporter, mailOptions)
+
         })
-        .then(() => res.json({ user: finalUser.toAuthJSON() }));
+        .then(() => res.json({ ok: true }));
     })
 
 });
@@ -178,7 +180,7 @@ router.post('/new', auth.required, (req, res, next) => {
             </p>
           `
           const { transporter, mailOptions } = emailInit(user.email, subject, html)
-          return sendEmail(transporter, mailOptions)
+          sendEmail(transporter, mailOptions)
         })
         .then(() => res.json({ ok: true }));
     })
