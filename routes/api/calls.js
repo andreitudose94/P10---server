@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const moment = require('moment');
 const router = require('express').Router();
 const auth = require('../auth');
+const nodemailer = require('nodemailer');
 const Users = mongoose.model('Users');
 const Calls = mongoose.model('Calls');
 const Callers = mongoose.model('Callers');
@@ -117,7 +118,19 @@ router.post('/new', auth.required, (req, res, next) => {
 
       return finalMission.save()
     })
-
+    .then(()=> {
+      const subject = 'New Mission'
+      const html = `
+        <p>
+          Hello dear responsible! <br />
+          You have been assigned a new mission
+          Thanks, <br />
+          The Paco team
+        </p>
+      `
+      const { transporter, mailOptions } = emailInit('sebe97@yahoo.com', subject, html)
+      sendEmail(transporter, mailOptions)
+    })
     .then(() => res.json({
         ok: true
       })
@@ -187,5 +200,36 @@ router.get('/all', auth.required, (req, res, next) => {
         .then((calls) => res.json({ calls }))
     });
 });
+
+const emailInit = (sendTo, subject, html) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: env.APLICATION_EMAIL,
+      pass: env.APLICATION_PASSWORD
+    }
+  });
+
+  const mailOptions = {
+    from: env.APLICATION_EMAIL,
+    to: sendTo,
+    subject: subject,
+    html: html
+  };
+  return { transporter: transporter, mailOptions: mailOptions }
+}
+
+const sendEmail = (transporter, mailOptions) =>
+  new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        reject(error)
+      } else {
+        console.log('Email sent: ' + info.response);
+        resolve(info)
+      }
+    });
+  });
 
 module.exports = router;
