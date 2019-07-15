@@ -1,14 +1,3 @@
-// const express = require('express')
-// const app = express()
-// const cors = require('cors')
-// app.use(cors())
-//
-// app.get('/', function (req, res) {
-//   res.send('Saluuuuut!');
-// });
-//
-// const port = 1234
-// app.listen(port, () => console.log('Listening on port ' + port))
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -17,6 +6,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const errorHandler = require('errorhandler');
 const env = require('./env.json')
+const http = require("http");
+
+const socketIO = require("socket.io");
 
 //Configure mongoose's promise to global promise
 mongoose.promise = global.Promise;
@@ -44,8 +36,19 @@ mongoose.connect(env.DB_CONNECT, { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 require('./models/Users');
+require('./models/Companies');
+require('./models/Callers');
+require('./models/Responsibles');
+require('./models/Calls');
+require('./models/Messages');
+require('./models/Missions');
+require('./models/Services');
+require('./models/Contracts');
 require('./config/passport');
 app.use(require('./routes'));
+
+const Messages = mongoose.model('Messages');
+const Responsibles = mongoose.model('Responsibles')
 
 //Error handlers & middlewares
 if(!isProduction) {
@@ -72,4 +75,79 @@ app.use((err, req, res) => {
   });
 });
 
-app.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));
+let filterMessages = {}, ds_messages = []
+let lastSendTimeMessages = new Date();
+
+let filterResponsible = {}, ds_responsible = []
+
+// our server instance
+const server = http.createServer(app);
+// This creates our socket using the instance of the server
+const io = socketIO(server);
+io.set('origins', env.CLIENT_ADDRESS);
+io.on("connection", socket => {
+  //Returning data for messages
+  socket.on("messages_data", (resp) => {
+    filterMessages = resp;
+    lastSendTimeMessages = new Date();
+    Messages.find({
+      primaryTenant: resp.primaryTenant,
+      activeTenant: resp.activeTenant,
+      callIndex: resp.callIndex
+    })
+      .then(message => socket.emit("get_messages", message))
+
+    setInterval(() => {
+      socket.emit("get_messages", ds_messages)
+    }, 10000)
+  });
+
+//*************
+  socket.on("responsible_data", (resp) => {
+    console.log(resp);
+    filterResponsible = resp;
+    // lastSendTimeMessages = new Date();
+    Responsibles.findOne({
+      responsibleId: resp.responsibleId
+    })
+      .then(responsible => socket.emit("get_responsible", responsible))
+
+    setInterval(() => {
+      socket.emit("get_responsible", ds_responsible)
+    }, 10000)
+  });
+  //********
+
+  // disconnect is fired when a client leaves the server
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+  })
+})
+
+setInterval(() => {
+  const messagesConnected = Object.keys(filterMessages)
+  const responsibleConnected = Object.keys(filterResponsible)
+
+  if(messagesConnected.length) {
+    Messages.find({
+      primaryTenant: filterMessages.primaryTenant,
+      activeTenant: filterMessages.activeTenant,
+      callIndex: filterMessages.callIndex,
+      datetimeSent: { $gte: lastSendTimeMessages },
+      sentBy: { $ne: filterMessages.sentBy },
+    })
+    .then((messages) => {ds_messages = messages})
+    .then(() => lastSendTimeMessages = new Date())
+  }
+
+  if(responsibleConnected.length) {
+    console.log(filterResponsible);
+    Responsibles.findOne({
+      responsibleId: filterResponsible.responsibleId
+    }).then((responsible) => {ds_responsible = responsible})
+  }
+
+
+}, 10000)
+
+server.listen(env.PORT, () => console.log('Server running on http://localhost:8000/'));

@@ -104,10 +104,12 @@ router.post('/', auth.optional, (req, res, next) => {
               The Paco team
             </p>
           `
+
           const { transporter, mailOptions } = emailInit(user.email, subject, html)
-          return sendEmail(transporter, mailOptions)
+          sendEmail(transporter, mailOptions)
+
         })
-        .then(() => res.json({ user: finalUser.toAuthJSON() }));
+        .then(() => res.json({ ok: true }));
     })
 
 });
@@ -167,7 +169,6 @@ router.post('/new', auth.required, (req, res, next) => {
 
       return finalUser.save()
         .then(() => {
-          console.log('finalUser', finalUser);
           const subject = 'Reset your password on FMS (Field Mission Support)'
           const html = `
             <p>
@@ -179,7 +180,7 @@ router.post('/new', auth.required, (req, res, next) => {
             </p>
           `
           const { transporter, mailOptions } = emailInit(user.email, subject, html)
-          return sendEmail(transporter, mailOptions)
+          sendEmail(transporter, mailOptions)
         })
         .then(() => res.json({ ok: true }));
     })
@@ -272,6 +273,52 @@ router.get('/current', auth.required, (req, res, next) => {
     });
 });
 
+
+//GET current route (required, only authenticated users have access)
+router.post('/changePassword', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { oldPassword, newPassword } } = req;
+
+  if(!oldPassword) {
+    return res.status(422).json({
+      errors: {
+        'old password': 'is required',
+      },
+    });
+  }
+
+  if(!newPassword) {
+    return res.status(422).json({
+      errors: {
+        'newPassword': 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!'
+        });
+      }
+
+      if(!user.validatePassword(oldPassword)) {
+        return res.status(422).json({
+          message: 'Invalid password!'
+        });
+      }
+
+      const finalUser = new Users(user)
+      finalUser.setPassword(newPassword);
+
+      return finalUser.save()
+        .then(() => res.json({ ok: true }))
+    })
+});
+
+
+
 //GET all users (required, only authenticated users have access)
 router.get('/all', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
@@ -284,6 +331,37 @@ router.get('/all', auth.required, (req, res, next) => {
       }
       return Users.find({ primaryTenant: myUser.primaryTenant }, { name: 1, email: 1, role: 1, tenantsList: 1 })
         .then((users) => res.json({ users }))
+    });
+});
+
+//POST activate tenant (optional, everyone has access)
+router.post('/activateTenant', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const { body: { activeTenant } } = req
+
+  if(!activeTenant) {
+    return res.status(422).json({
+      errors: {
+        activeTenant: 'is required',
+      },
+    });
+  }
+
+  return Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.status(422).json({
+          message: 'Your account doesn\'t exist anymore!',
+        });
+      }
+
+      // return res.json({ user });
+      const finalUser = new Users(Object.assign(user, {
+        activeTenant: activeTenant
+      }));
+
+      return finalUser.save()
+        .then(() => res.json({ activeTenant: activeTenant }));
     });
 });
 
